@@ -1,118 +1,118 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
+import React, {useEffect, useState} from 'react';
+import {ActivityIndicator, FlatList, PermissionsAndroid, Text, View} from 'react-native';
+import SmsAndroid from 'react-native-get-sms-android';
 
-import React from 'react';
-import type {PropsWithChildren} from 'react';
-import {
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  Text,
-  useColorScheme,
-  View,
-} from 'react-native';
+const App = () => {
+  const [granted, setGranted] = useState(false);
+  const [count, setCount] = useState(0); //count of sms
+  const [loader, setLoader] = useState(true); //loader
+  const [smsList, setSmsList] = useState([]);
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+  useEffect(() => {
+    const requestSMSPermission = async () => {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.READ_SMS,
+          {
+            title: 'SMS Permission',
+            message: 'This app needs access to your SMS messages.',
+            buttonNeutral: 'Ask Me Later',
+            buttonNegative: 'Cancel',
+            buttonPositive: 'OK',
+          },
+        );
+        if (granted === PermissionsAndroid.RESULTS.GRANTED) {
+          setGranted(true);
+        } else {
+          setGranted(false);
+        }
+      } catch (err) {
+        console.warn(err);
+      }
+    };
 
-type SectionProps = PropsWithChildren<{
-  title: string;
-}>;
+    requestSMSPermission();
+  }, []);
 
-function Section({children, title}: SectionProps): JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
+  useEffect(() => {
+    if (granted) {
+      const filter = {
+        // bodyRegex:"" //regex
+        //body:"selam",
+        //adress:"+905545455"
+        //minDate: 123213213,
+        //maxDate:12312321321
+        // read: 1,
+        indexFrom: 0,
+      };
+      SmsAndroid.list(
+        JSON.stringify(filter),
+        fail => {
+          console.log('fail', fail);
+        },
+        (count, smsList) => {
+          setCount(count);
+          setSmsList(JSON.parse(smsList));
+        },
+      );
+      setLoader(false);
+    }
+  }, [granted]);
+
+  if (loader) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 20,
+        }}>
+        <ActivityIndicator size="large" color="#fff" />
+      </View>
+    );
+  }
+
   return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
+    <View
+      style={{
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+      }}>
+      <Text>Bare React Native Sms</Text>
+      <FlatList
+        data={smsList}
+        renderItem={({item}) => (
+          <View
+            style={{
+              backgroundColor: '#fff',
+              padding: 10,
+              marginVertical: 5,
+              borderRadius: 5,
+            }}>
+            <Text style={{color: 'black', marginBottom: 5}}>
+              Body: {item.body}
+            </Text>
+            <Text style={{color: 'black', marginBottom: 5}}>
+              Address: {item.address}
+            </Text>
+            <Text style={{color: 'black', marginBottom: 5}}>
+              Date:{' '}
+              {new Date(parseInt(item.date)).toLocaleDateString() +
+                ' ' +
+                new Date(parseInt(item.date)).toLocaleTimeString()}
+            </Text>
+            <Text style={{color: 'black', marginBottom: 5}}>
+              Read: {item.read}
+            </Text>
+          </View>
+        )}
+        keyExtractor={item => item._id}
+      />
     </View>
   );
-}
-
-function App(): JSX.Element {
-  const isDarkMode = useColorScheme() === 'dark';
-
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
-  };
-
-  return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar
-        barStyle={isDarkMode ? 'light-content' : 'dark-content'}
-        backgroundColor={backgroundStyle.backgroundColor}
-      />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.tsx</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
-const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-  },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
-  },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
-  },
-  highlight: {
-    fontWeight: '700',
-  },
-});
+};
 
 export default App;
